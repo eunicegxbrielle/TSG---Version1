@@ -1,0 +1,6 @@
+{
+  "name": "The Shuttle Games",
+  "description": "The Shuttle Games Badminton Club: The Reaping open play queue, Arena matchmaking, Sponsor's Gifts, and Victors leaderboards.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
