@@ -552,6 +552,7 @@ export const Version1App: React.FC<Version1AppProps> = ({
         onClose={() => setViewingProfilePlayerId(null)}
         onProfileUpdated={refreshData}
         onViewMyGames={(p) => handleSelectTributeFromLeaderboard(p)}
+        onSignOut={handleSignOut}
       />
 
       <GamemakerAuthModal

@@ -159,14 +159,14 @@ export const HeaderV2: React.FC<HeaderV2Props> = ({
               <Shield className="w-4 h-4" />
             </button>
 
-            {/* Unified Avatar + Tribute Switcher Pill (fits cleanly on 360px phones) */}
+            {/* Upper-Right Profile Button (opens Profile + Sign Out when signed in, Sign In modal when logged out) */}
             <div className="flex items-center gap-1.5 rounded-xl bg-stone-100 dark:bg-white/[0.04] border border-stone-200 dark:border-white/[0.08] p-1 pr-2 sm:pr-2.5 min-h-[40px]">
               {currentPlayer ? (
                 <TributeAvatar
                   name={currentPlayer.name}
                   avatarUrl={currentPlayer.avatarUrl}
                   size="xs"
-                  onClick={onOpenCurrentProfile}
+                  onClick={onOpenCurrentProfile || onOpenPlayerModal}
                   title="Open Your Profile"
                 />
               ) : (
@@ -175,7 +175,7 @@ export const HeaderV2: React.FC<HeaderV2Props> = ({
 
               <button
                 type="button"
-                onClick={onOpenPlayerModal}
+                onClick={currentPlayer ? (onOpenCurrentProfile || onOpenPlayerModal) : onOpenPlayerModal}
                 className="text-xs font-medium text-stone-900 dark:text-neutral-100 hover:text-amber-700 dark:hover:text-amber-200 max-w-[68px] sm:max-w-[130px] truncate transition-colors"
               >
                 {currentPlayer ? currentPlayer.name : 'Sign In'}

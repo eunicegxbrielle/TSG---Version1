@@ -190,7 +190,7 @@ export const Header: React.FC<HeaderProps> = ({
               </span>
             </button>
 
-            {/* Tribute Profile Switcher + Avatar Trigger */}
+            {/* Upper-Right Profile Button (opens Profile + Sign Out when signed in, Sign In modal when logged out) */}
             <div className="flex items-center gap-1.5 bg-stone-100 dark:bg-neutral-900 border border-stone-300 dark:border-amber-900/50 hover:border-amber-500/70 rounded-xl p-1 pr-2 sm:pr-2.5 transition-all shadow-sm min-h-[40px]">
               {currentPlayer ? (
                 <TributeAvatar
@@ -198,7 +198,7 @@ export const Header: React.FC<HeaderProps> = ({
                   avatarUrl={currentPlayer.avatarUrl}
                   size="xs"
                   onClick={onOpenCurrentProfile || onOpenPlayerModal}
-                  title="View / Edit Your Profile"
+                  title="Open Your Profile"
                 />
               ) : (
                 <button
@@ -212,7 +212,7 @@ export const Header: React.FC<HeaderProps> = ({
               )}
               <button
                 type="button"
-                onClick={onOpenPlayerModal}
+                onClick={currentPlayer ? (onOpenCurrentProfile || onOpenPlayerModal) : onOpenPlayerModal}
                 className="text-left max-w-[68px] sm:max-w-[115px] truncate"
               >
                 <span className="block text-[11px] sm:text-xs font-medium text-stone-900 dark:text-amber-100 truncate">

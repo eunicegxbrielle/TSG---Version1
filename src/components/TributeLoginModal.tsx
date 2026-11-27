@@ -125,7 +125,7 @@ export const TributeLoginModal: React.FC<TributeLoginModalProps> = ({
               Tribute Account
             </span>
             <span className="text-xs text-stone-500 dark:text-neutral-400">
-              The Shuttle Games · Sign In or Sign Up
+              {currentPlayer ? 'Signed In Tribute Profile' : 'The Shuttle Games · Sign In or Sign Up'}
             </span>
           </div>
           <button
@@ -138,30 +138,36 @@ export const TributeLoginModal: React.FC<TributeLoginModalProps> = ({
           </button>
         </div>
 
-        {/* Active Account Summary if signed in */}
-        {currentPlayer && (
-          <div className="px-4 sm:px-6 py-3 bg-stone-50 dark:bg-[#0e1015] border-b border-stone-200 dark:border-neutral-800 flex items-center justify-between gap-3 shrink-0">
-            <div className="flex items-center gap-2.5 min-w-0">
+        {currentPlayer ? (
+          <div className="p-5 sm:p-6 space-y-5 overflow-y-auto">
+            <div className="flex items-center gap-3.5 p-4 rounded-xl bg-stone-50 dark:bg-[#0e1015] border border-stone-200 dark:border-neutral-800">
               <TributeAvatar
                 name={currentPlayer.name}
                 avatarUrl={currentPlayer.avatarUrl}
-                size="sm"
+                size="lg"
               />
-              <div className="min-w-0">
-                <div className="text-xs font-semibold text-stone-900 dark:text-neutral-100 truncate">
+              <div className="min-w-0 flex-1">
+                <div className="text-base font-bold font-cinzel text-stone-900 dark:text-amber-100 truncate">
                   {currentPlayer.name}
-                  {currentPlayer.username && (
-                    <span className="ml-1.5 font-mono text-[11px] font-normal text-amber-700 dark:text-amber-400">
-                      @{currentPlayer.username}
-                    </span>
-                  )}
                 </div>
-                <div className="text-[11px] text-stone-500 dark:text-neutral-400 truncate">
+                {currentPlayer.username && (
+                  <div className="text-xs font-mono text-amber-700 dark:text-amber-400 truncate">
+                    @{currentPlayer.username}
+                  </div>
+                )}
+                <div className="text-xs text-stone-500 dark:text-neutral-400 mt-1">
                   {currentPlayer.category} · {CATEGORY_TO_DISTRICT[currentPlayer.category] || currentPlayer.district}
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-1.5 shrink-0">
+
+            {currentPlayer.bio && (
+              <p className="text-xs sm:text-sm text-stone-600 dark:text-neutral-300 leading-relaxed px-1">
+                {currentPlayer.bio}
+              </p>
+            )}
+
+            <div className="space-y-2.5">
               {onViewProfile && (
                 <button
                   type="button"
@@ -169,59 +175,62 @@ export const TributeLoginModal: React.FC<TributeLoginModalProps> = ({
                     onClose();
                     onViewProfile(currentPlayer);
                   }}
-                  className="min-h-[36px] px-2.5 py-1 rounded-lg bg-white dark:bg-[#171a24] border border-stone-300 dark:border-neutral-700 text-[11px] font-medium text-stone-700 dark:text-neutral-200 hover:border-amber-500 inline-flex items-center gap-1"
+                  className="w-full min-h-[44px] px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black font-cinzel font-bold text-xs uppercase tracking-wider shadow-md inline-flex items-center justify-center gap-2 transition-all active:scale-95"
                 >
-                  <UserIcon className="w-3 h-3" />
-                  Profile
+                  <UserIcon className="w-4 h-4" />
+                  View &amp; Edit Full Profile
                 </button>
               )}
               {onSignOut && (
                 <button
                   type="button"
-                  onClick={onSignOut}
-                  className="min-h-[36px] px-2.5 py-1 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 text-[11px] font-medium text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40 inline-flex items-center gap-1"
+                  onClick={() => {
+                    onClose();
+                    onSignOut();
+                  }}
+                  className="w-full min-h-[44px] px-4 py-2.5 rounded-xl bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/40 border border-red-300 dark:border-red-800/60 text-red-700 dark:text-red-300 font-semibold text-xs uppercase tracking-wider inline-flex items-center justify-center gap-2 transition-colors"
                 >
-                  <LogOut className="w-3 h-3" />
+                  <LogOut className="w-4 h-4" />
                   Sign Out
                 </button>
               )}
             </div>
           </div>
-        )}
+        ) : (
+          <>
+            {/* Segmented Tabs: Sign In | Sign Up */}
+            <div className="flex border-b border-stone-200 dark:border-neutral-800 bg-stone-50 dark:bg-[#0e1015] shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('signin');
+                  setFormError(null);
+                }}
+                className={`flex-1 min-h-[44px] py-3 px-2 text-xs font-semibold tracking-wider uppercase transition-colors border-b-2 ${
+                  mode === 'signin'
+                    ? 'border-amber-500 text-amber-800 dark:text-amber-300 bg-amber-500/10 dark:bg-amber-500/5'
+                    : 'border-transparent text-stone-500 dark:text-neutral-400 hover:text-stone-900 dark:hover:text-neutral-200'
+                }`}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('signup');
+                  setFormError(null);
+                }}
+                className={`flex-1 min-h-[44px] py-3 px-2 text-xs font-semibold tracking-wider uppercase transition-colors border-b-2 ${
+                  mode === 'signup'
+                    ? 'border-amber-500 text-amber-800 dark:text-amber-300 bg-amber-500/10 dark:bg-amber-500/5'
+                    : 'border-transparent text-stone-500 dark:text-neutral-400 hover:text-stone-900 dark:hover:text-neutral-200'
+                }`}
+              >
+                Sign Up
+              </button>
+            </div>
 
-        {/* Segmented Tabs: Sign In | Sign Up */}
-        <div className="flex border-b border-stone-200 dark:border-neutral-800 bg-stone-50 dark:bg-[#0e1015] shrink-0">
-          <button
-            type="button"
-            onClick={() => {
-              setMode('signin');
-              setFormError(null);
-            }}
-            className={`flex-1 min-h-[44px] py-3 px-2 text-xs font-semibold tracking-wider uppercase transition-colors border-b-2 ${
-              mode === 'signin'
-                ? 'border-amber-500 text-amber-800 dark:text-amber-300 bg-amber-500/10 dark:bg-amber-500/5'
-                : 'border-transparent text-stone-500 dark:text-neutral-400 hover:text-stone-900 dark:hover:text-neutral-200'
-            }`}
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setMode('signup');
-              setFormError(null);
-            }}
-            className={`flex-1 min-h-[44px] py-3 px-2 text-xs font-semibold tracking-wider uppercase transition-colors border-b-2 ${
-              mode === 'signup'
-                ? 'border-amber-500 text-amber-800 dark:text-amber-300 bg-amber-500/10 dark:bg-amber-500/5'
-                : 'border-transparent text-stone-500 dark:text-neutral-400 hover:text-stone-900 dark:hover:text-neutral-200'
-            }`}
-          >
-            Sign Up
-          </button>
-        </div>
-
-        <div className="p-4 sm:p-6 flex-1 overflow-y-auto">
+            <div className="p-4 sm:p-6 flex-1 overflow-y-auto">
           {mode === 'signin' ? (
             <form onSubmit={handleSignInSubmit} className="space-y-4">
               <div>
@@ -508,7 +517,9 @@ export const TributeLoginModal: React.FC<TributeLoginModalProps> = ({
               </div>
             </form>
           )}
-        </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

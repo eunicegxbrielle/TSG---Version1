@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Upload, Pencil, Check, Flame, Trophy, BarChart3 } from 'lucide-react';
+import { X, Upload, Pencil, Check, Flame, BarChart3, LogOut } from 'lucide-react';
 import { CATEGORY_TO_DISTRICT, Player } from '../types';
 import { TributeAvatar } from './TributeAvatar';
 import { PRESET_AVATARS, resizeImageFileToDataUrl } from '../utils/avatars';
@@ -12,6 +12,7 @@ interface TributeProfileModalProps {
   onClose: () => void;
   onProfileUpdated: () => void;
   onViewMyGames?: (player: Player) => void;
+  onSignOut?: () => void;
 }
 
 export const TributeProfileModal: React.FC<TributeProfileModalProps> = ({
@@ -21,6 +22,7 @@ export const TributeProfileModal: React.FC<TributeProfileModalProps> = ({
   onClose,
   onProfileUpdated,
   onViewMyGames,
+  onSignOut,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
@@ -111,7 +113,7 @@ export const TributeProfileModal: React.FC<TributeProfileModalProps> = ({
             <div className="mt-4 space-y-4">
               {/* Name & District */}
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-cinzel text-2xl font-black text-stone-900 dark:text-amber-100">
                     {player.name}
                   </h3>
@@ -121,7 +123,12 @@ export const TributeProfileModal: React.FC<TributeProfileModalProps> = ({
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-2 mt-1 text-xs">
+                {player.username && (
+                  <p className="text-xs font-mono text-amber-700 dark:text-amber-400 mt-0.5">
+                    @{player.username}
+                  </p>
+                )}
+                <div className="flex items-center gap-2 mt-1.5 text-xs">
                   <span className="px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/15 border border-amber-300 dark:border-amber-500/40 text-amber-800 dark:text-amber-300 font-mono font-bold">
                     {district}
                   </span>
@@ -163,19 +170,35 @@ export const TributeProfileModal: React.FC<TributeProfileModalProps> = ({
                 </div>
               </div>
 
-              {onViewMyGames && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onViewMyGames(player);
-                    onClose();
-                  }}
-                  className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black font-cinzel font-bold text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95"
-                >
-                  <BarChart3 className="w-4 h-4" />
-                  Open Full Stats in My Games
-                </button>
-              )}
+              <div className="space-y-2.5">
+                {onViewMyGames && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onViewMyGames(player);
+                      onClose();
+                    }}
+                    className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black font-cinzel font-bold text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95"
+                  >
+                    <BarChart3 className="w-4 h-4" />
+                    Open Full Stats in My Games
+                  </button>
+                )}
+
+                {isMe && onSignOut && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onSignOut();
+                    }}
+                    className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/40 border border-red-300 dark:border-red-800/60 text-red-700 dark:text-red-300 font-semibold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sign Out
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
             <form onSubmit={handleSaveProfile} className="mt-4 space-y-4">
