@@ -1176,10 +1176,35 @@ export function setGamemakerAuth(auth: GamemakerAuth): void {
   localStorage.setItem(STORAGE_KEYS.GAMEMAKER_AUTH, JSON.stringify(auth));
 }
 
-export function verifyGamemakerPasskey(passkey: string): boolean {
-  const normalized = passkey.trim().toLowerCase();
-  // Accepted passkeys: 7475, gamemaker, capitol, or shuttlegames
-  return ['7475', 'gamemaker', 'capitol', 'shuttlegames'].includes(normalized);
+export const GAMEMAKER_ORGANIZERS = ['Eunice', 'Hiro', 'Tiara'] as const;
+export type GamemakerOrganizer = (typeof GAMEMAKER_ORGANIZERS)[number];
+
+const ORGANIZER_PASSCODE_DIGESTS: Record<GamemakerOrganizer, string> = {
+  Eunice: '30ff513c76b0fced',
+  Hiro: '2744d85870fb586a',
+  Tiara: '636c3782ac92100d',
+};
+
+function digestOrganizerPasscode(organizer: string, passcode: string): string {
+  const input = `tsg-gm:${organizer}:${passcode}`;
+  let h1 = 0x811c9dc5;
+  let h2 = 0x9e3779b9;
+  for (let i = 0; i < input.length; i++) {
+    const ch = input.charCodeAt(i);
+    h1 ^= ch;
+    h1 = Math.imul(h1, 0x01000193);
+    h2 ^= ch + (i + 1) * 31;
+    h2 = Math.imul(h2, 0x85ebca6b);
+  }
+  return (h1 >>> 0).toString(16).padStart(8, '0') + (h2 >>> 0).toString(16).padStart(8, '0');
+}
+
+export function verifyGamemakerPasscode(organizer: GamemakerOrganizer, passcode: string): boolean {
+  const trimmed = passcode.trim();
+  if (!trimmed) return false;
+  const expected = ORGANIZER_PASSCODE_DIGESTS[organizer];
+  if (!expected) return false;
+  return digestOrganizerPasscode(organizer, trimmed) === expected;
 }
 
 /**

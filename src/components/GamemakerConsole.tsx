@@ -21,6 +21,7 @@ import {
   Trash2,
   ChevronDown,
   BellRing,
+  Repeat,
 } from 'lucide-react';
 import {
   Court,
@@ -63,6 +64,8 @@ interface GamemakerConsoleProps {
   onLogoutGamemaker: () => void;
   onDataUpdated: () => void;
   onOpenQrModal: () => void;
+  currentVersion?: 'v1' | 'v2';
+  onSwitchVersion?: () => void;
 }
 
 export const GamemakerConsole: React.FC<GamemakerConsoleProps> = ({
@@ -74,6 +77,8 @@ export const GamemakerConsole: React.FC<GamemakerConsoleProps> = ({
   onLogoutGamemaker,
   onDataUpdated,
   onOpenQrModal,
+  currentVersion = 'v2',
+  onSwitchVersion,
 }) => {
   // Score entry state (Arena Results)
   const [scoringCourt, setScoringCourt] = useState<Court | null>(null);
@@ -345,6 +350,17 @@ export const GamemakerConsole: React.FC<GamemakerConsoleProps> = ({
             <PlusCircle className="w-4 h-4" />
             New Session
           </button>
+
+          {onSwitchVersion && (
+            <button
+              type="button"
+              onClick={onSwitchVersion}
+              className="min-h-[40px] px-3.5 py-2 bg-stone-100 dark:bg-[#1a1c28] hover:bg-stone-200 dark:hover:bg-neutral-800 text-amber-800 dark:text-amber-300 border border-stone-300 dark:border-amber-900/60 rounded-xl text-xs font-mono flex items-center gap-1.5 transition-colors"
+            >
+              <Repeat className="w-4 h-4" />
+              {currentVersion === 'v2' ? 'Switch to Version 1' : 'Switch to Version 2'}
+            </button>
+          )}
 
           <button
             type="button"

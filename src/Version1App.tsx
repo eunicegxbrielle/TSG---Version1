@@ -43,17 +43,19 @@ import {
 } from './utils/audio';
 
 interface Version1AppProps {
+  initialTab?: AppTab;
   onSwitchToV2?: () => void;
   theme?: 'dark' | 'light';
   onToggleTheme?: () => void;
 }
 
 export const Version1App: React.FC<Version1AppProps> = ({
+  initialTab = 'queue',
   onSwitchToV2,
   theme = 'dark',
   onToggleTheme,
 }) => {
-  const [activeTab, setActiveTab] = useState<AppTab>('queue');
+  const [activeTab, setActiveTab] = useState<AppTab>(initialTab);
 
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [allTributes, setAllTributes] = useState<Player[]>([]);
@@ -63,10 +65,7 @@ export const Version1App: React.FC<Version1AppProps> = ({
   const [activeSession, setActiveSession] = useState<QueueSession | null>(null);
 
   // Gamemaker Authorization State (organizer-only console)
-  const [gamemakerAuth, setGamemakerAuthLocal] = useState<GamemakerAuth>({
-    isAuthorized: false,
-    gamemakerName: '',
-  });
+  const [gamemakerAuth, setGamemakerAuthLocal] = useState<GamemakerAuth>(() => getGamemakerAuth());
 
   // Modals
   const [isPlayerModalOpen, setIsPlayerModalOpen] = useState(false);
@@ -413,6 +412,8 @@ export const Version1App: React.FC<Version1AppProps> = ({
             onLogoutGamemaker={handleGamemakerLogout}
             onDataUpdated={refreshData}
             onOpenQrModal={() => setIsQrModalOpen(true)}
+            currentVersion="v1"
+            onSwitchVersion={onSwitchToV2}
           />
         )}
 
@@ -521,18 +522,6 @@ export const Version1App: React.FC<Version1AppProps> = ({
             >
               {gamemakerAuth.isAuthorized ? `Organizer: ${gamemakerAuth.gamemakerName}` : 'Gamemaker Portal'}
             </button>
-            {onSwitchToV2 && (
-              <>
-                <span aria-hidden="true" className="text-stone-300 dark:text-neutral-700">·</span>
-                <button
-                  type="button"
-                  onClick={onSwitchToV2}
-                  className="min-h-[36px] px-2 text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200 font-mono underline underline-offset-4 transition-colors"
-                >
-                  Open Version 2 (Minimalist)
-                </button>
-              </>
-            )}
           </div>
         </div>
       </footer>

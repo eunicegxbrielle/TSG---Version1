@@ -43,17 +43,19 @@ import {
 } from './utils/audio';
 
 interface Version2AppProps {
+  initialTab?: AppTabV2;
   onSwitchToV1?: () => void;
   theme?: 'dark' | 'light';
   onToggleTheme?: () => void;
 }
 
 export const Version2App: React.FC<Version2AppProps> = ({
+  initialTab = 'queue',
   onSwitchToV1,
   theme = 'dark',
   onToggleTheme,
 }) => {
-  const [activeTab, setActiveTab] = useState<AppTabV2>('queue');
+  const [activeTab, setActiveTab] = useState<AppTabV2>(initialTab);
 
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [allTributes, setAllTributes] = useState<Player[]>([]);
@@ -63,10 +65,7 @@ export const Version2App: React.FC<Version2AppProps> = ({
   const [activeSession, setActiveSession] = useState<QueueSession | null>(null);
 
   // Gamemaker Authorization State (organizer-only console)
-  const [gamemakerAuth, setGamemakerAuthLocal] = useState<GamemakerAuth>({
-    isAuthorized: false,
-    gamemakerName: '',
-  });
+  const [gamemakerAuth, setGamemakerAuthLocal] = useState<GamemakerAuth>(() => getGamemakerAuth());
 
   // Modals
   const [isPlayerModalOpen, setIsPlayerModalOpen] = useState(false);
@@ -427,6 +426,8 @@ export const Version2App: React.FC<Version2AppProps> = ({
             onLogoutGamemaker={handleGamemakerLogout}
             onDataUpdated={refreshData}
             onOpenQrModal={() => setIsQrModalOpen(true)}
+            currentVersion="v2"
+            onSwitchVersion={onSwitchToV1}
           />
         )}
       </main>
@@ -516,18 +517,6 @@ export const Version2App: React.FC<Version2AppProps> = ({
                 ? `Gamemaker: ${gamemakerAuth.gamemakerName}`
                 : 'Gamemaker Portal'}
             </button>
-            {onSwitchToV1 && (
-              <>
-                <span aria-hidden="true" className="text-stone-300 dark:text-neutral-700">·</span>
-                <button
-                  type="button"
-                  onClick={onSwitchToV1}
-                  className="min-h-[36px] px-2 text-stone-600 dark:text-neutral-400 hover:text-amber-700 dark:hover:text-amber-300 font-mono transition-colors"
-                >
-                  Switch to Version 1
-                </button>
-              </>
-            )}
           </div>
         </div>
       </footer>

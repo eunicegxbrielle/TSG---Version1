@@ -31,6 +31,7 @@ function getInitialTheme(): ThemeMode {
 
 export default function App() {
   const [version, setVersion] = useState<'v1' | 'v2'>(getInitialVersion);
+  const [initialTab, setInitialTab] = useState<'queue' | 'gamemaker'>('queue');
   const [theme, setTheme] = useState<ThemeMode>(getInitialTheme);
 
   useEffect(() => {
@@ -54,7 +55,11 @@ export default function App() {
   if (version === 'v1') {
     return (
       <Version1App
-        onSwitchToV2={() => setVersion('v2')}
+        initialTab={initialTab}
+        onSwitchToV2={() => {
+          setInitialTab('gamemaker');
+          setVersion('v2');
+        }}
         theme={theme}
         onToggleTheme={handleToggleTheme}
       />
@@ -63,7 +68,11 @@ export default function App() {
 
   return (
     <Version2App
-      onSwitchToV1={() => setVersion('v1')}
+      initialTab={initialTab}
+      onSwitchToV1={() => {
+        setInitialTab('gamemaker');
+        setVersion('v1');
+      }}
       theme={theme}
       onToggleTheme={handleToggleTheme}
     />
