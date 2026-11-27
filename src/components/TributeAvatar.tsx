@@ -30,8 +30,8 @@ export const TributeAvatar: React.FC<TributeAvatarProps> = ({
   const [imgError, setImgError] = useState(false);
   const resolvedSrc = !imgError && avatarUrl ? avatarUrl : createTributeSvgAvatar(name);
 
-  const baseClass = `${SIZE_CLASSES[size]} rounded-full object-cover border border-amber-500/50 bg-[#181b26] shrink-0 overflow-hidden shadow-sm ${
-    onClick ? 'cursor-pointer hover:border-amber-300 hover:scale-105 transition-all' : ''
+  const baseClass = `${SIZE_CLASSES[size]} rounded-full object-cover border border-amber-500/60 dark:border-amber-500/50 bg-stone-200 dark:bg-[#181b26] shrink-0 overflow-hidden shadow-sm ${
+    onClick ? 'cursor-pointer hover:border-amber-600 dark:hover:border-amber-300 hover:scale-105 transition-all' : ''
   } ${className}`;
 
   if (onClick) {

@@ -182,8 +182,34 @@ export function triggerVibrationAlarm(pattern: number | number[] = [350, 150, 35
   }
 }
 
+function selectFemaleCapitolVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | undefined {
+  if (voices.length === 0) return undefined;
+  const englishVoices = voices.filter((v) => /^en([-_]|$)/i.test(v.lang));
+  const pool = englishVoices.length > 0 ? englishVoices : voices;
+
+  const malePattern = /\b(male|daniel|david|mark|george|ryan|arthur|alex|fred|thomas|oliver|james|aaron|rishi|albert|bruce|junior|ralph|jorge)\b/i;
+
+  // 1. Prefer expressive British / US female voices (Hunger Games Capitol announcer feel)
+  const preferredFemale =
+    pool.find((v) => /google uk english female|microsoft (libby|sonia)|serena|kate|fiona|martha/i.test(v.name)) ||
+    pool.find((v) => /samantha|ava|allison|victoria|karen|tessa|moira|nicky|microsoft (aria|jenny|zira|hazel|susan)|google us english/i.test(v.name)) ||
+    pool.find((v) => /female|woman/i.test(v.name) && !malePattern.test(v.name)) ||
+    pool.find((v) => !malePattern.test(v.name));
+
+  return preferredFemale || pool[0];
+}
+
+function formatArenaLabel(courtName: string): string {
+  const numMatch = courtName.match(/\d+/);
+  return numMatch ? `Arena ${numMatch[0]}` : courtName;
+}
+
+if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+  window.speechSynthesis.getVoices();
+}
+
 /**
- * Speak a Capitol voice-over announcement using Web Speech API
+ * Speak a Capitol woman voice-over announcement using Web Speech API
  */
 export function speakCapitolAnnouncement(text: string) {
   if (!soundEnabled) return;
@@ -191,18 +217,14 @@ export function speakCapitolAnnouncement(text: string) {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.96;
-      utterance.pitch = 0.92;
+      utterance.rate = 0.94;
+      utterance.pitch = 1.15;
       utterance.volume = 1.0;
 
       const voices = window.speechSynthesis.getVoices();
-      if (voices.length > 0) {
-        const preferred =
-          voices.find((v) => /en[-_]US|en[-_]GB/i.test(v.lang) && /natural|google|samantha|daniel/i.test(v.name)) ||
-          voices.find((v) => v.lang.startsWith('en'));
-        if (preferred) {
-          utterance.voice = preferred;
-        }
+      const chosen = selectFemaleCapitolVoice(voices);
+      if (chosen) {
+        utterance.voice = chosen;
       }
 
       window.speechSynthesis.speak(utterance);
@@ -221,6 +243,33 @@ export function announcePreReadyAlert(targetCourtId?: number) {
   const arenaText = targetCourtId ? `Arena ${targetCourtId}` : 'the Arena';
   setTimeout(() => {
     speakCapitolAnnouncement(`Get ready, Tribute! You are next into ${arenaText}!`);
+  }, 900);
+}
+
+/**
+ * Voice-over + Mockingjay chime + Phone Vibration for Tribute Arena Assignment
+ */
+export function announceArenaAssignmentAlert(courtName: string) {
+  playMockingjayWhistle();
+  triggerVibrationAlarm([400, 120, 400, 120, 700]);
+  const arenaLabel = formatArenaLabel(courtName);
+  setTimeout(() => {
+    speakCapitolAnnouncement(
+      `Tribute, please go to ${arenaLabel}. May the shots be ever on your favor.`
+    );
+  }, 900);
+}
+
+/**
+ * Gamemaker Desk / PA Arena Callout Announcer
+ */
+export function announceDeskArenaCallout(courtName: string, _playerNames: string[] = []) {
+  playMockingjayWhistle();
+  const arenaLabel = formatArenaLabel(courtName);
+  setTimeout(() => {
+    speakCapitolAnnouncement(
+      `Tribute, please go to ${arenaLabel}. May the shots be ever on your favor.`
+    );
   }, 900);
 }
 
