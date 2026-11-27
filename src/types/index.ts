@@ -64,6 +64,7 @@ export interface PlayerStats {
 export interface Player {
   id: string;
   name: string;
+  username?: string;
   district: string;
   category: SkillCategory;
   avatarUrl?: string;

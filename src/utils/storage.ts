@@ -301,11 +301,13 @@ const INITIAL_COURTS: Court[] = [
 
 const STORAGE_KEYS = {
   PLAYERS: 'shuttle_games_tributes',
+  TRIBUTE_CREDENTIALS: 'shuttle_games_tribute_credentials',
   CURRENT_PLAYER_ID: 'shuttle_games_current_player_id',
   QUEUE: 'shuttle_games_queue',
   COURTS: 'shuttle_games_courts',
   SESSIONS: 'shuttle_games_sessions',
   ACTIVE_SESSION_ID: 'shuttle_games_active_session_id',
+  ENTERED_SESSION_ID: 'shuttle_games_entered_session_id',
   MATCH_HISTORY: 'shuttle_games_match_history',
   GAMEMAKER_AUTH: 'shuttle_games_gamemaker_auth',
   PRE_READY_MATCHES: 'shuttle_games_pre_ready_matches',
@@ -336,11 +338,6 @@ export async function initializeStorage(): Promise<void> {
 
   if (!localStorage.getItem(STORAGE_KEYS.PLAYERS)) {
     localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(INITIAL_PLAYERS));
-  }
-
-  if (!localStorage.getItem(STORAGE_KEYS.CURRENT_PLAYER_ID)) {
-    // Default to Katniss
-    localStorage.setItem(STORAGE_KEYS.CURRENT_PLAYER_ID, 'p-katniss');
   }
 
   if (!localStorage.getItem(STORAGE_KEYS.SESSIONS)) {
@@ -507,12 +504,33 @@ export function saveTributes(players: Player[]): void {
 export function getCurrentPlayer(): Player | null {
   if (typeof window === 'undefined') return null;
   const currentId = localStorage.getItem(STORAGE_KEYS.CURRENT_PLAYER_ID);
+  if (!currentId) return null;
   const players = getTributes();
-  return players.find((p) => p.id === currentId) || players[0] || null;
+  return players.find((p) => p.id === currentId) || null;
 }
 
 export function setCurrentPlayerId(id: string): void {
   localStorage.setItem(STORAGE_KEYS.CURRENT_PLAYER_ID, id);
+}
+
+export function signOutCurrentPlayer(): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(STORAGE_KEYS.CURRENT_PLAYER_ID);
+  localStorage.removeItem(STORAGE_KEYS.ENTERED_SESSION_ID);
+}
+
+export function getEnteredReapingSessionId(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(STORAGE_KEYS.ENTERED_SESSION_ID);
+}
+
+export function setEnteredReapingSessionId(sessionId: string | null): void {
+  if (typeof window === 'undefined') return;
+  if (sessionId) {
+    localStorage.setItem(STORAGE_KEYS.ENTERED_SESSION_ID, sessionId);
+  } else {
+    localStorage.removeItem(STORAGE_KEYS.ENTERED_SESSION_ID);
+  }
 }
 
 export function createOrUpdatePlayer(
@@ -574,6 +592,186 @@ export function createOrUpdatePlayer(
   }
 
   return newPlayer;
+}
+
+interface StoredCredential {
+  playerId: string;
+  passwordHash: string;
+}
+
+function generateSalt(): string {
+  try {
+    if (typeof window !== 'undefined' && window.crypto?.getRandomValues) {
+      const bytes = new Uint8Array(8);
+      window.crypto.getRandomValues(bytes);
+      return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+    }
+  } catch {
+    // fallback below
+  }
+  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+}
+
+function hashTributePassword(password: string, salt: string): string {
+  const input = `tsg-auth:${salt}:${password}`;
+  let h1 = 0x811c9dc5;
+  let h2 = 0x9e3779b9;
+  let h3 = 0x85ebca6b;
+  let h4 = 0xc2b2ae35;
+  for (let round = 0; round < 3; round++) {
+    for (let i = 0; i < input.length; i++) {
+      const ch = input.charCodeAt(i) + round * 17;
+      h1 ^= ch;
+      h1 = Math.imul(h1, 0x01000193);
+      h2 ^= ch + (i + 1) * 31;
+      h2 = Math.imul(h2, 0x85ebca6b);
+      h3 ^= (h1 >>> 3) + ch;
+      h3 = Math.imul(h3, 0xc2b2ae35);
+      h4 ^= (h2 >>> 5) + ch * 13;
+      h4 = Math.imul(h4, 0x27d4eb2f);
+    }
+  }
+  return (
+    salt +
+    '$' +
+    (h1 >>> 0).toString(16).padStart(8, '0') +
+    (h2 >>> 0).toString(16).padStart(8, '0') +
+    (h3 >>> 0).toString(16).padStart(8, '0') +
+    (h4 >>> 0).toString(16).padStart(8, '0')
+  );
+}
+
+function verifyTributePassword(password: string, storedHash: string): boolean {
+  const sepIdx = storedHash.indexOf('$');
+  if (sepIdx <= 0) return false;
+  const salt = storedHash.slice(0, sepIdx);
+  return hashTributePassword(password, salt) === storedHash;
+}
+
+function getTributeCredentials(): Record<string, StoredCredential> {
+  if (typeof window === 'undefined') return {};
+  const raw = localStorage.getItem(STORAGE_KEYS.TRIBUTE_CREDENTIALS);
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+function saveTributeCredentials(creds: Record<string, StoredCredential>): void {
+  localStorage.setItem(STORAGE_KEYS.TRIBUTE_CREDENTIALS, JSON.stringify(creds));
+}
+
+export function registerTributeAccount(params: {
+  name: string;
+  username: string;
+  category: SkillCategory;
+  bio?: string;
+  avatarUrl?: string;
+  password: string;
+}): { success: boolean; player?: Player; error?: string } {
+  const cleanName = params.name.trim();
+  const cleanUsername = params.username.trim();
+  const usernameKey = cleanUsername.toLowerCase();
+
+  if (!cleanName) {
+    return { success: false, error: 'Please enter your Tribute Name.' };
+  }
+  if (!cleanUsername || cleanUsername.length < 3 || /\s/.test(cleanUsername)) {
+    return {
+      success: false,
+      error: 'Tribute Username must be at least 3 characters with no spaces.',
+    };
+  }
+  if (!params.password || params.password.length < 4) {
+    return {
+      success: false,
+      error: 'Password must be at least 4 characters long.',
+    };
+  }
+
+  const creds = getTributeCredentials();
+  const players = getTributes();
+  if (
+    creds[usernameKey] ||
+    players.some((p) => p.username?.toLowerCase() === usernameKey)
+  ) {
+    return {
+      success: false,
+      error: 'That Tribute Username is already taken. Choose another or Sign In.',
+    };
+  }
+
+  const district = CATEGORY_TO_DISTRICT[params.category] || 'District 1';
+  const activeSessionId = getActiveSessionId();
+
+  const newPlayer: Player = {
+    id: `p-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    name: cleanName,
+    username: cleanUsername,
+    category: params.category,
+    district,
+    avatarUrl: params.avatarUrl || createTributeSvgAvatar(cleanName),
+    bio:
+      params.bio?.trim() ||
+      `${params.category} tribute representing ${district} in The Shuttle Games.`,
+    stats: {
+      totalGames: 0,
+      totalWins: 0,
+      totalLoses: 0,
+      winRate: 0,
+    },
+    sponsorGifts: {},
+    sessionsJoined: activeSessionId ? [activeSessionId] : [],
+  };
+
+  players.push(newPlayer);
+  saveTributes(players);
+
+  const salt = generateSalt();
+  creds[usernameKey] = {
+    playerId: newPlayer.id,
+    passwordHash: hashTributePassword(params.password, salt),
+  };
+  saveTributeCredentials(creds);
+  setCurrentPlayerId(newPlayer.id);
+
+  if (activeSessionId) {
+    const sessions = getSessions();
+    const curr = sessions.find((s) => s.id === activeSessionId);
+    if (curr && !curr.tributesPresent.includes(newPlayer.id)) {
+      curr.tributesPresent.push(newPlayer.id);
+      saveSessions(sessions);
+    }
+  }
+
+  return { success: true, player: newPlayer };
+}
+
+export function signInTributeAccount(
+  username: string,
+  password: string
+): { success: boolean; player?: Player; error?: string } {
+  const usernameKey = username.trim().toLowerCase();
+  if (!usernameKey || !password) {
+    return { success: false, error: 'Please enter your Tribute Username and Password.' };
+  }
+
+  const creds = getTributeCredentials();
+  const cred = creds[usernameKey];
+  if (!cred || !verifyTributePassword(password, cred.passwordHash)) {
+    return { success: false, error: 'Invalid Tribute Username or Password.' };
+  }
+
+  const players = getTributes();
+  const player = players.find((p) => p.id === cred.playerId);
+  if (!player) {
+    return { success: false, error: 'Invalid Tribute Username or Password.' };
+  }
+
+  setCurrentPlayerId(player.id);
+  return { success: true, player };
 }
 
 export function updatePlayerProfile(
@@ -780,6 +978,66 @@ export function getActiveSessionId(): string {
 
 export function setActiveSessionId(sessionId: string): void {
   localStorage.setItem(STORAGE_KEYS.ACTIVE_SESSION_ID, sessionId);
+}
+
+export function resolveAndEnterSessionByCodeOrQr(
+  rawInput: string,
+  playerId?: string
+): { success: boolean; session?: QueueSession; error?: string } {
+  const trimmed = rawInput.trim();
+  if (!trimmed) {
+    return { success: false, error: 'Please enter a Game Code or scan a Reaping QR code.' };
+  }
+
+  let candidate = trimmed;
+  try {
+    if (/^https?:\/\//i.test(trimmed) || trimmed.includes('session=')) {
+      const parsedUrl = trimmed.startsWith('http')
+        ? new URL(trimmed)
+        : new URL(trimmed, window.location.origin);
+      const fromParam = parsedUrl.searchParams.get('session');
+      if (fromParam) {
+        candidate = fromParam.trim();
+      }
+    }
+  } catch {
+    // Fallback to raw trimmed string
+  }
+
+  const normalized = candidate.toUpperCase();
+  const sessions = getSessions();
+  const matched = sessions.find(
+    (s) => s.id.toUpperCase() === normalized || s.code.toUpperCase() === normalized
+  );
+
+  if (!matched) {
+    return {
+      success: false,
+      error: 'Game Code or QR code not recognized. Please ask the Gamemaker for today’s Game Code or QR.',
+    };
+  }
+
+  sessions.forEach((s) => {
+    s.isActive = s.id === matched.id;
+  });
+
+  if (playerId) {
+    if (!matched.tributesPresent.includes(playerId)) {
+      matched.tributesPresent.push(playerId);
+    }
+    const players = getTributes();
+    const pIdx = players.findIndex((p) => p.id === playerId);
+    if (pIdx >= 0 && !players[pIdx].sessionsJoined.includes(matched.id)) {
+      players[pIdx].sessionsJoined.push(matched.id);
+      saveTributes(players);
+    }
+  }
+
+  saveSessions(sessions);
+  setActiveSessionId(matched.id);
+  setEnteredReapingSessionId(matched.id);
+
+  return { success: true, session: matched };
 }
 
 export async function createNewSession(name: string, courtCount: number = 4): Promise<QueueSession> {

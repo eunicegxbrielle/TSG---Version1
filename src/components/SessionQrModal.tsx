@@ -17,6 +17,7 @@ export const SessionQrModal: React.FC<SessionQrModalProps> = ({
   onSelectSession,
 }) => {
   const [copied, setCopied] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
   const [viewHistory, setViewHistory] = useState(false);
 
   if (!isOpen) return null;
@@ -28,6 +29,13 @@ export const SessionQrModal: React.FC<SessionQrModalProps> = ({
     navigator.clipboard.writeText(sessionUrl).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const handleCopyCode = () => {
+    navigator.clipboard.writeText(activeSession.code).then(() => {
+      setCopiedCode(true);
+      setTimeout(() => setCopiedCode(false), 2000);
     });
   };
 
@@ -47,7 +55,7 @@ export const SessionQrModal: React.FC<SessionQrModalProps> = ({
             </div>
             <div className="min-w-0">
               <span className="font-cinzel text-sm sm:text-base font-bold text-stone-900 dark:text-amber-200 block truncate">
-                Session Reaping QR Code
+                Session Reaping QR &amp; Game Code
               </span>
               <span className="text-[11px] font-mono text-stone-500 dark:text-neutral-400 block truncate">
                 {activeSession.code} · Panem Protocol
@@ -72,10 +80,10 @@ export const SessionQrModal: React.FC<SessionQrModalProps> = ({
                 <img
                   src={activeSession.qrCodeUrl}
                   alt={`QR Code for ${activeSession.name}`}
-                  className="w-44 h-44 sm:w-56 sm:h-56 mx-auto object-contain"
+                  className="w-44 h-44 sm:w-52 sm:h-52 mx-auto object-contain"
                 />
               ) : (
-                <div className="w-44 h-44 sm:w-56 sm:h-56 flex items-center justify-center text-xs text-black font-mono">
+                <div className="w-44 h-44 sm:w-52 sm:h-52 flex items-center justify-center text-xs text-black font-mono">
                   Generating Session QR...
                 </div>
               )}
@@ -86,8 +94,28 @@ export const SessionQrModal: React.FC<SessionQrModalProps> = ({
                 {activeSession.name}
               </h4>
               <p className="text-xs text-stone-500 dark:text-neutral-400 mt-1 max-w-xs mx-auto">
-                Scan with any smartphone camera to immediately enter this session's queue.
+                Tributes can scan this QR code or enter today&apos;s Game Code after signing in to enter The Reaping.
               </p>
+            </div>
+
+            {/* Game Code Box */}
+            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-500/40 flex items-center justify-between gap-2 text-left">
+              <div className="min-w-0">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-amber-800 dark:text-amber-400 block">
+                  Daily Game Code
+                </span>
+                <span className="font-mono text-sm sm:text-base font-bold text-stone-900 dark:text-amber-100 tracking-wider select-all">
+                  {activeSession.code}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleCopyCode}
+                className="min-h-[38px] px-3 py-1.5 rounded-lg bg-amber-500 text-black font-semibold text-xs flex items-center gap-1 shrink-0 hover:bg-amber-400 transition-colors"
+              >
+                {copiedCode ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                {copiedCode ? 'Copied' : 'Copy Code'}
+              </button>
             </div>
 
             {/* Copyable Share URL */}
@@ -98,10 +126,10 @@ export const SessionQrModal: React.FC<SessionQrModalProps> = ({
               <button
                 type="button"
                 onClick={handleCopy}
-                className="min-h-[38px] px-3 py-1.5 rounded-lg bg-amber-500 text-black font-semibold text-xs flex items-center gap-1 shrink-0 hover:bg-amber-400 transition-colors"
+                className="min-h-[38px] px-3 py-1.5 rounded-lg bg-stone-200 dark:bg-neutral-800 text-stone-900 dark:text-neutral-100 font-semibold text-xs flex items-center gap-1 shrink-0 hover:bg-stone-300 dark:hover:bg-neutral-700 transition-colors"
               >
                 {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                {copied ? 'Copied' : 'Copy'}
+                {copied ? 'Copied' : 'Copy Link'}
               </button>
             </div>
 

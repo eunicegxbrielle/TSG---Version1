@@ -11,6 +11,8 @@ import { SponsorGiftModal } from './components/SponsorGiftModal';
 import { SessionQrModal } from './components/SessionQrModal';
 import { GamemakerAuthModal } from './components/GamemakerAuthModal';
 import { ArenaAssignmentModal } from './components/ArenaAssignmentModal';
+import { LandingGate } from './components/LandingGate';
+import { SessionGateView } from './components/SessionGateView';
 import {
   Court,
   CourtMatch,
@@ -30,9 +32,11 @@ import {
   getActiveSessionId,
   getPlayerMatchStatus,
   getPlayerPreReadyInfo,
-  setActiveSessionId,
   getGamemakerAuth,
   setGamemakerAuth,
+  getEnteredReapingSessionId,
+  signOutCurrentPlayer,
+  resolveAndEnterSessionByCodeOrQr,
 } from './utils/storage';
 import {
   isSoundEnabled,
@@ -66,6 +70,11 @@ export const Version1App: React.FC<Version1AppProps> = ({
 
   // Gamemaker Authorization State (organizer-only console)
   const [gamemakerAuth, setGamemakerAuthLocal] = useState<GamemakerAuth>(() => getGamemakerAuth());
+  const [isStorageReady, setIsStorageReady] = useState(false);
+  const [enteredSessionId, setEnteredSessionId] = useState<string | null>(() =>
+    getEnteredReapingSessionId()
+  );
+  const [pendingUrlSessionId, setPendingUrlSessionId] = useState<string | null>(null);
 
   // Modals
   const [isPlayerModalOpen, setIsPlayerModalOpen] = useState(false);
@@ -173,6 +182,7 @@ export const Version1App: React.FC<Version1AppProps> = ({
     setSessions(s);
     setActiveSession(activeSess);
     setGamemakerAuthLocal(auth);
+    setEnteredSessionId(getEnteredReapingSessionId());
 
     if (currPlayer) {
       const status = getPlayerMatchStatus(currPlayer.id);
@@ -190,14 +200,19 @@ export const Version1App: React.FC<Version1AppProps> = ({
     const init = async () => {
       await initializeStorage();
 
-      // Check if URL has session query parameter
+      // Check if URL has session query parameter (e.g. phone camera scanned QR)
       const params = new URLSearchParams(window.location.search);
       const urlSession = params.get('session');
       if (urlSession) {
-        setActiveSessionId(urlSession);
+        setPendingUrlSessionId(urlSession);
+        const existingPlayer = getCurrentPlayer();
+        if (existingPlayer) {
+          resolveAndEnterSessionByCodeOrQr(urlSession, existingPlayer.id);
+        }
       }
 
       refreshData();
+      setIsStorageReady(true);
     };
 
     init();
@@ -263,12 +278,90 @@ export const Version1App: React.FC<Version1AppProps> = ({
     setActiveTab('queue');
   };
 
+  const handleLandingAuthenticated = (player: Player) => {
+    setCurrentPlayer(player);
+    if (pendingUrlSessionId) {
+      const res = resolveAndEnterSessionByCodeOrQr(pendingUrlSessionId, player.id);
+      if (res.success && res.session) {
+        setEnteredSessionId(res.session.id);
+        setPendingUrlSessionId(null);
+        setActiveTab('queue');
+      }
+    }
+    refreshData();
+  };
+
+  const handleSessionEntered = (sess: QueueSession) => {
+    setEnteredSessionId(sess.id);
+    setPendingUrlSessionId(null);
+    setActiveTab('queue');
+    refreshData();
+  };
+
+  const handleSignOut = () => {
+    signOutCurrentPlayer();
+    setCurrentPlayer(null);
+    setEnteredSessionId(null);
+    setIsPlayerModalOpen(false);
+    refreshData();
+  };
+
   const activeSessionId = activeSession?.id || 'SHUTTLE-75-QUARTER';
   const activeSessionName = activeSession?.name || 'The Shuttle Games';
   const activeMonth = activeSession?.month || '2026-11';
   const viewingProfilePlayer = viewingProfilePlayerId
     ? allTributes.find((t) => t.id === viewingProfilePlayerId) || null
     : null;
+
+  if (!isStorageReady) {
+    return <div className="min-h-screen bg-[#f6f4ef] dark:bg-[#0a0b0e]" />;
+  }
+
+  // Step 1: Landing Page for Sign In / Sign Up (unless Gamemaker is signed in)
+  if (!gamemakerAuth.isAuthorized && !currentPlayer) {
+    return (
+      <>
+        <LandingGate
+          tributes={allTributes}
+          pendingQrSessionId={pendingUrlSessionId}
+          onAuthenticated={handleLandingAuthenticated}
+          onOpenGamemakerAuthModal={() => setIsGamemakerAuthModalOpen(true)}
+          theme={theme}
+          onToggleTheme={onToggleTheme}
+        />
+        <GamemakerAuthModal
+          isOpen={isGamemakerAuthModalOpen}
+          onClose={() => setIsGamemakerAuthModalOpen(false)}
+          gamemakerAuth={gamemakerAuth}
+          onLogin={handleGamemakerLogin}
+          onLogout={handleGamemakerLogout}
+        />
+      </>
+    );
+  }
+
+  // Step 2: Scan QR Code or Enter Game Code before entering The Reaping
+  if (!gamemakerAuth.isAuthorized && currentPlayer && !enteredSessionId) {
+    return (
+      <>
+        <SessionGateView
+          currentPlayer={currentPlayer}
+          onSessionEntered={handleSessionEntered}
+          onSignOut={handleSignOut}
+          onOpenGamemakerAuthModal={() => setIsGamemakerAuthModalOpen(true)}
+          theme={theme}
+          onToggleTheme={onToggleTheme}
+        />
+        <GamemakerAuthModal
+          isOpen={isGamemakerAuthModalOpen}
+          onClose={() => setIsGamemakerAuthModalOpen(false)}
+          gamemakerAuth={gamemakerAuth}
+          onLogin={handleGamemakerLogin}
+          onLogout={handleGamemakerLogout}
+        />
+      </>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f6f4ef] dark:bg-[#0a0b0e] text-stone-900 dark:text-[#e6e6e6] flex flex-col font-sans selection:bg-amber-500/30 selection:text-amber-900 dark:selection:text-amber-200 overflow-x-clip transition-colors duration-200">
@@ -449,6 +542,7 @@ export const Version1App: React.FC<Version1AppProps> = ({
           refreshData();
         }}
         onViewProfile={handleViewProfile}
+        onSignOut={handleSignOut}
       />
 
       <TributeProfileModal
@@ -522,6 +616,18 @@ export const Version1App: React.FC<Version1AppProps> = ({
             >
               {gamemakerAuth.isAuthorized ? `Organizer: ${gamemakerAuth.gamemakerName}` : 'Gamemaker Portal'}
             </button>
+            {currentPlayer && (
+              <>
+                <span aria-hidden="true" className="text-stone-300 dark:text-neutral-700">·</span>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="min-h-[36px] px-2 text-stone-600 dark:text-neutral-400 hover:text-red-700 dark:hover:text-red-300 font-mono transition-colors"
+                >
+                  Sign Out
+                </button>
+              </>
+            )}
           </div>
         </div>
       </footer>

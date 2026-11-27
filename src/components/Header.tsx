@@ -204,7 +204,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   type="button"
                   onClick={onOpenPlayerModal}
-                  aria-label="Select Tribute"
+                  aria-label="Tribute Account"
                   className="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-600/30 border border-amber-400 dark:border-amber-500/50 flex items-center justify-center text-amber-700 dark:text-amber-300"
                 >
                   <User className="w-3 h-3" />
